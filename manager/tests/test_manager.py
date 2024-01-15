@@ -24,12 +24,13 @@ def get_global():
 
 @pytest.fixture()
 def context():
-    os.environ.update({
-        'FLASK_SQLALCHEMY_DATABASE_URI': 'sqlite:///',
-        'FLASK_SECRET_KEY': 'test_secret_key',
-        'FLASK_ENV': 'testing',
-        'FLASK_WTF_CSRF_ENABLED': 'False'
-    })
+    os.environ.update(
+        {
+            "FLASK_SQLALCHEMY_DATABASE_URI": "sqlite:///",
+            "FLASK_SECRET_KEY": "test_secret_key",
+            "FLASK_WTF_CSRF_ENABLED": False,
+        }
+    )
     from ..src.app import app, auth, db
 
     app.testing = True
@@ -43,7 +44,7 @@ def context():
 def authorized_client(context, monkeypatch):
     app, auth, _ = context
     authorized_client = app.test_client()
-    monkeypatch.setattr(auth, 'authenticate', lambda *x: True)
+    monkeypatch.setattr(auth, "authenticate", lambda *_: True)
     yield authorized_client
 
 
@@ -55,16 +56,19 @@ def test_auth(context):
 
 @pytest.mark.run(order=1)
 def test_add_image(authorized_client, context, set_global):
-    resp = authorized_client.post("/images", data={
-        "title": "Upload Test",
-        "position": "SH",
-        "time": "2024",
-        "description": "Testing uploading...",
-        "image": ((resources / "picture.png").open("rb"), "picture.png")
-    })
+    resp = authorized_client.post(
+        "/images",
+        data={
+            "title": "Upload Test",
+            "position": "SH",
+            "time": "2024",
+            "description": "Testing uploading...",
+            "image": ((resources / "picture.png").open("rb"), "picture.png"),
+        },
+    )
     assert resp.status_code == 200
-    newly_added = resp.json['result']
-    assert newly_added and not resp.json['err_code']
+    newly_added = resp.json["result"]
+    assert newly_added and not resp.json["err_code"]
 
     app, _, db = context
     with app.app_context():
@@ -79,15 +83,18 @@ def test_add_image(authorized_client, context, set_global):
 
 @pytest.mark.run(order=2)
 def test_add_repeat(authorized_client, context, set_global):
-    resp = authorized_client.post("/images", data={
-        "title": "Upload Test",
-        "position": "SH",
-        "time": "2024",
-        "description": "Testing uploading...",
-        "image": ((resources / "picture.png").open("rb"), "picture.png")
-    })
+    resp = authorized_client.post(
+        "/images",
+        data={
+            "title": "Upload Test",
+            "position": "SH",
+            "time": "2024",
+            "description": "Testing uploading...",
+            "image": ((resources / "picture.png").open("rb"), "picture.png"),
+        },
+    )
     assert resp.status_code == 200
-    assert resp.json['err_code'] == 'REPEAT_TITLE'
+    assert resp.json["err_code"] == "REPEAT_TITLE"
 
 
 @pytest.mark.run(order=3)
@@ -98,13 +105,16 @@ def test_update_image(authorized_client, context, get_global):
         assert img
 
         new_title = "Upload Test 3"
-        resp = authorized_client.put(f"/images/{img.id}", data={
-            "title": new_title,
-            "position": "SH",
-            "time": "2024",
-            "description": "Testing uploading...",
-            "image": ((resources / "picture.png").open("rb"), "picture.png")
-        })
+        resp = authorized_client.put(
+            f"/images/{img.id}",
+            data={
+                "title": new_title,
+                "position": "SH",
+                "time": "2024",
+                "description": "Testing uploading...",
+                "image": ((resources / "picture.png").open("rb"), "picture.png"),
+            },
+        )
         assert resp.status_code == 200
 
         updated_img = db.session.get(Image, img.id)
@@ -115,44 +125,50 @@ def test_update_image(authorized_client, context, get_global):
 def test_update_repeat(authorized_client, context, get_global, set_global):
     # upload another
     new_title = "Upload Test 2"
-    resp = authorized_client.post("/images", data={
-        "title": new_title,
-        "position": "SH",
-        "time": "2024",
-        "description": "Testing uploading...",
-        "image": ((resources / "picture.png").open("rb"), "picture.png")
-    })
+    resp = authorized_client.post(
+        "/images",
+        data={
+            "title": new_title,
+            "position": "SH",
+            "time": "2024",
+            "description": "Testing uploading...",
+            "image": ((resources / "picture.png").open("rb"), "picture.png"),
+        },
+    )
     assert resp.status_code == 200
-    set_global('another_image', resp.json['result'])
+    set_global("another_image", resp.json["result"])
 
     app, _, db = context
     with app.app_context():
         img = db.session.get(Image, get_global("newly_added"))
         assert img
 
-        resp = authorized_client.put(f"/images/{img.id}", data={
-            "title": new_title,
-            "position": "SH",
-            "time": "2024",
-            "description": "Testing uploading...",
-            "image": ((resources / "picture.png").open("rb"), "picture.png")
-        })
+        resp = authorized_client.put(
+            f"/images/{img.id}",
+            data={
+                "title": new_title,
+                "position": "SH",
+                "time": "2024",
+                "description": "Testing uploading...",
+                "image": ((resources / "picture.png").open("rb"), "picture.png"),
+            },
+        )
         assert resp.status_code == 200
-        assert resp.json['err_code'] == 'REPEAT_TITLE'
+        assert resp.json["err_code"] == "REPEAT_TITLE"
 
 
 @pytest.mark.run(order=5)
 def test_retrieve_image(authorized_client, context, get_global):
     resp = authorized_client.get("/images")
     assert resp.status_code == 200
-    assert isinstance(resp.json['pages'], int)
-    assert isinstance(resp.json['images'], list) and len(resp.json['images']) == 2
+    assert isinstance(resp.json["pages"], int)
+    assert isinstance(resp.json["images"], list) and len(resp.json["images"]) == 2
 
 
 @pytest.mark.run(order=6)
 def test_delete_image(authorized_client, context, get_global):
-    img_id = get_global('newly_added')
-    img_id_another = get_global('another_image')
+    img_id = get_global("newly_added")
+    img_id_another = get_global("another_image")
 
     app, _, db = context
     with app.app_context():
@@ -175,5 +191,3 @@ def test_delete_image(authorized_client, context, get_global):
         img_thumbnail_path_another = root_folder / img_another.thumbnail_uri
         assert not img_path.exists() and not img_thumbnail_path.exists()
         assert not img_path_another.exists() and not img_thumbnail_path_another.exists()
-
-
